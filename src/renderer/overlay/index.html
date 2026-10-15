@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>GhostOverlay</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="floating-controls">
+    <div id="floating-drag-handle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="9" cy="12" r="1.5"></circle>
+        <circle cx="9" cy="5" r="1.5"></circle>
+        <circle cx="9" cy="19" r="1.5"></circle>
+        <circle cx="15" cy="12" r="1.5"></circle>
+        <circle cx="15" cy="5" r="1.5"></circle>
+        <circle cx="15" cy="19" r="1.5"></circle>
+      </svg>
+    </div>
+
+    <button id="floating-lock-btn" class="floating-btn unlocked">
+      <span class="icon-slot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+        </svg>
+      </span>
+      <span class="text-slot">Unlocked</span>
+    </button>
+  </div>
+
+  <div class="overlay-container unlocked" id="overlay-container">
+
+    <!-- Custom Resize Handles -->
+    <div class="resize-handle top-left" data-edge="top-left">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <polyline points="8 4 4 4 4 8"></polyline>
+        <line x1="4" y1="4" x2="10" y2="10"></line>
+      </svg>
+    </div>
+    <div class="resize-handle bottom-right" data-edge="bottom-right">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <polyline points="16 20 20 20 20 16"></polyline>
+        <line x1="14" y1="14" x2="20" y2="20"></line>
+      </svg>
+    </div>
+
+    <!-- Header / Drag Handle Area -->
+    <div class="header-zone" id="header-zone">
+      <div class="header-left">
+        <span id="status-text">UNLOCKED</span>
+        <style>
+          /* --- 1. THE DEFINITIVE DARK THEME (DEFAULT) --- */
+          :root {
+            --bg-overlay: rgba(33, 33, 33, 0.95);
+            --border-stealth: #444444;
+            --text-main: #ececec;
+            --text-muted: #b4b4b4;
+            --msg-ai-bg: rgba(47, 47, 47, 0.6);
+            --msg-border: rgba(255, 255, 255, 0.05);
+            --header-bg: rgba(47, 47, 47, 0.95);
+            --header-border: rgba(255, 255, 255, 0.05);
+            --btn-bg: #2f2f2f;
+            --btn-border: #555555;
+            --btn-hover: #404040;
+            --btn-text: #ececec;
+            --lock-red-bg: rgba(217, 48, 37, 0.1);
+            --lock-red-border: rgba(217, 48, 37, 0.5);
+            --lock-red-text: #ff6b6b;
+          }
+
+          /* --- 2. THE DEFINITIVE LIGHT THEME OVERRIDE --- */
+          body.light-theme {
+            --bg-overlay: rgba(255, 255, 255, 0.95);
+            --border-stealth: #d9d9e3;
+            --text-main: #0d0d0d;
+            --text-muted: #8e8ea0;
+            --msg-ai-bg: #f7f7f8;
+            --msg-border: rgba(0, 0, 0, 0.05);
+            --header-bg: #f7f7f8;
+            --header-border: #d9d9e3;
+            --btn-bg: #ffffff;
+            --btn-border: #d9d9e3;
+            --btn-hover: #f3f3f3;
+            --btn-text: #0d0d0d;
+            --lock-red-bg: #fce8e6;
+            --lock-red-border: #ea4335;
+            --lock-red-text: #c5221f;
+          }
+
+          body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+            /* CRITICAL ANTIALIASING FIX FOR TRANSPARENT ELECTRON WINDOWS */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+          }
+
+          /* --- 3. UI APPLICATION --- */
+          .overlay-container.locked {
+            background: var(--bg-overlay);
+            border: 1px solid var(--border-stealth);
+            border-radius: 8px;
+          }
+
+          #transcript-container {
+            position: relative; /* CRITICAL FOR ACCURATE MATH SCROLLING */
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            /* Removed overflow-y and max-height so the master .content div handles scrolling natively */
+            padding: 0 0 85vh 0; 
+          }
+
+          /* --- 4. TEXT & SHADOW ERADICATION --- */
+          .message-row {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--msg-border);
+            box-shadow: none !important;
+            /* Kills legacy neon shadows */
+            background: transparent;
+          }
+
+          .message-answer {
+            /* Background removed so it inherits the identical .message-row background as the question */
+          }
+
+          .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+          }
+
+          .avatar.user {
+            background: #5436da;
+            color: #fff;
+          }
+
+          .avatar.ai {
+            background: #10a37f;
+            color: #fff;
+          }
+
+          .msg-content {
+            color: var(--text-main);
+            font-size: 14.5px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-shadow: none !important;
+            /* Kills the blurry text smudge */
+          }
+
+          .thinking-pulse .msg-content {
+            animation: pulse 1.2s infinite;
+            color: #b4b4b4;
+          }
+
+          @keyframes pulse {
+            0% {
+              opacity: 0.5;
+            }
+
+            50% {
+              opacity: 1;
+            }
+
+            100% {
+              opacity: 0.5;
+            }
+          }
+
+          /* Unlocked State (When .locked is NOT present) */
+          .overlay-container {
+            box-sizing: border-box;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+          }
+
+          .overlay-container:not(.locked) {
+            width: calc(100vw - 4px);
+            height: calc(100vh - 4px);
+            margin: 2px;
+            background: var(--bg-overlay);
+            border: 2px dashed var(--border-stealth);
+            /* Dark gray, zero glare */
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+          }
+
+          /* --- 5. TOP BAR & BUTTON APPLICATION --- */
+          /* Responsive Header Styles */
+          /* Disable Drag on Header */
+          .header-zone {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--header-border);
+            border-radius: 8px 8px 0 0;
+            -webkit-app-region: no-drag !important;
+            cursor: default !important;
+            user-select: none;
+            flex-wrap: nowrap;
+            gap: 10px;
+          }
+
+          .header-left {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+          }
+
+          .header-actions {
+            display: flex;
+            gap: 8px;
+          }
+
+          .action-btn {
+            -webkit-app-region: no-drag;
+            /* Makes it clickable */
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 4px;
+            color: var(--btn-text);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+
+          .action-btn:hover {
+            background: var(--btn-hover);
+          }
+
+          .action-btn svg {
+            width: 14px;
+            height: 14px;
+          }
+
+          .action-btn.danger:hover {
+            background: rgba(217, 48, 37, 0.8);
+            color: white;
+            border-color: transparent;
+          }
+
+          /* Active States */
+          .action-btn.recording {
+            background: rgba(16, 163, 127, 0.3);
+            border-color: #10a37f;
+            color: #10a37f;
+          }
+
+          /* Complete Responsiveness: Hide text when window is too narrow */
+          @media (max-width: 550px) {
+            .btn-text {
+              display: none;
+            }
+
+            .action-btn {
+              padding: 8px;
+            }
+
+            .action-btn svg {
+              width: 16px;
+              height: 16px;
+              margin: 0;
+            }
+          }
+
+          .overlay-container.locked .header-zone {
+            background: transparent;
+            border-bottom: none;
+            cursor: default;
+            -webkit-app-region: no-drag;
+          }
+
+          /* Header Text Styling */
+          #status-text {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+          }
+
+          .overlay-container:not(.locked) #status-text {
+            color: #10a37f;
+            /* Highlights teal when unlocked */
+          }
+
+          /* Minimalist Corner Resize Handles */
+          .resize-handle {
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 999999 !important;
+            cursor: default !important;
+            color: #10a37f;
+          }
+
+          .overlay-container:not(.locked) .resize-handle {
+            opacity: 1;
+            pointer-events: auto;
+          }
+
+          .overlay-container.locked .resize-handle {
+            pointer-events: none;
+            display: none;
+          }
+
+          /* Corner Grab Zones (Larger for easier grabbing) */
+          .resize-handle.top-left,
+          .resize-handle.bottom-right {
+            width: 44px;
+            height: 44px;
+            cursor: default !important;
+          }
+
+          .resize-handle.top-left {
+            top: 0;
+            left: 0;
+            border-top-left-radius: 8px;
+          }
+
+          .resize-handle.bottom-right {
+            bottom: 0;
+            right: 0;
+            border-bottom-right-radius: 8px;
+          }
+
+          /* Sharp Diagonal Gradients */
+          .overlay-container:not(.locked) .resize-handle.top-left {
+            background: linear-gradient(135deg, rgba(16, 163, 127, 0.45) 0%, transparent 60%);
+          }
+
+          .overlay-container:not(.locked) .resize-handle.bottom-right {
+            background: linear-gradient(315deg, rgba(16, 163, 127, 0.45) 0%, transparent 60%);
+          }
+
+          /* Enhanced SVG Icons */
+          .resize-handle svg {
+            width: 20px;
+            height: 20px;
+            opacity: 0.9;
+            position: absolute;
+          }
+
+          .resize-handle.top-left svg {
+            top: 4px;
+            left: 4px;
+          }
+
+          .resize-handle.bottom-right svg {
+            bottom: 4px;
+            right: 4px;
+          }
+
+          /* Floating Controls Container */
+          .floating-controls {
+            position: fixed;
+            top: 6px;
+            right: 15px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          /* Update floating button positioning (remove absolute since flex handles it) */
+          .floating-btn {
+            position: relative;
+            top: auto;
+            right: auto;
+            /* Positions it nicely on the top right */
+            -webkit-app-region: no-drag;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 20px;
+            /* Pill shape */
+            color: var(--btn-text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+
+          .floating-btn:hover {
+            background: var(--btn-hover);
+          }
+
+          /* Dedicated Drag Handle */
+          #floating-drag-handle {
+            -webkit-app-region: no-drag !important;
+            /* We will handle dragging via IPC */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 6px;
+            color: var(--btn-text);
+            cursor: grab;
+            transition: all 0.2s;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+
+          #floating-drag-handle:hover {
+            background: var(--btn-hover);
+          }
+
+          #floating-drag-handle svg {
+            width: 14px;
+            height: 14px;
+          }
+
+          /* Locked state styling for the button */
+          .floating-btn.locked-state {
+            background: var(--lock-red-bg);
+            border-color: var(--lock-red-border);
+            color: var(--lock-red-text);
+          }
+
+          .floating-btn svg {
+            width: 14px;
+            height: 14px;
+          }
+
+          /* Adjust Overlay to make room for the floating button */
+          .overlay-container {
+            margin-top: 40px !important;
+            /* Pushes the main box down */
+            height: calc(100vh - 40px) !important;
+            /* Prevents bottom overflow */
+          }
+
+          .overlay-container:not(.locked) {
+            height: calc(100vh - 44px) !important;
+            /* Accounts for borders in unlocked mode */
+          }
+
+          /* --- Auto Mode Transcript Container --- */
+          .auto-transcript-container {
+            width: 100%;
+            padding: 10px 15px;
+            background: var(--bg-secondary, rgba(20, 20, 20, 0.95));
+            border-bottom: 1px solid var(--border-color, #333);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          }
+
+          .transcript-indicator {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--lock-red-text, #ff4444);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+
+          .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--lock-red-text, #ff4444);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+          }
+
+          .transcript-text-area {
+            max-height: 4.8em; /* 4.5em + 0.3em buffer to prevent clipping letters like g, p, y */
+            overflow-y: hidden; /* Hide scrollbar for stealth */
+            font-size: 13px;
+            line-height: 1.5;
+            font-family: 'Inter', system-ui, sans-serif;
+            padding-bottom: 4px; /* Give the bottom line breathing room */
+            scroll-behavior: smooth; /* Smooth CC-style pushing */
+          }
+
+          .text-final {
+            color: var(--text-muted, #aaa);
+          }
+
+          .text-partial {
+            color: var(--text-main, #fff);
+          }
+
+          @keyframes pulse {
+            0% {
+              transform: scale(0.95);
+              box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+            }
+
+            70% {
+              transform: scale(1);
+              box-shadow: 0 0 0 4px rgba(255, 68, 68, 0);
+            }
+
+            100% {
+              transform: scale(0.95);
+              box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+            }
+          }
+        </style>
+        <span id="listening-status"
+          style="display: none; color: #ff6b6b; margin-left: 10px; font-weight: bold; animation: pulse 1.5s infinite; font-size: 11px;">LISTENING...</span>
+        <span id="saved-status"
+          style="display: none; color: #f2c94c; margin-left: 10px; font-weight: bold; font-size: 11px;">QUEUED</span>
+      </div>
+      <div class="header-actions">
+
+        <button id="btn-record" class="action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+          <span class="btn-text">Start Recording</span>
+        </button>
+        <button id="btn-translate" class="action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          <span class="btn-text">Translate</span>
+        </button>
+        <button id="btn-kill" class="action-btn danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span class="btn-text">Kill</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Auto Mode Live Stream Container -->
+    <div id="auto-transcript-container" class="auto-transcript-container" style="display: none;">
+      <div class="transcript-text-area">
+        <span id="transcript-final" class="text-final"></span>
+        <span id="transcript-partial" class="text-partial">Waiting for interviewer to speak...</span>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <div id="transcript-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+
+  </div>
+
+  <script src="renderer.js"></script>
+  <style>
+    /* 1. Universal Stealth Cursors */
+    * {
+      cursor: default !important;
+    }
+
+    .resize-handle {
+      z-index: 999999 !important;
+    }
+
+    /* 2. Base App Transparency */
+    html,
+    body,
+    #transcript-container {
+      background: transparent !important;
+    }
+
+    /* =========================================
+       DARK MODE (GHOST) - DEFAULT
+       ========================================= */
+    .overlay-container {
+      background-color: rgba(20, 20, 20, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* Dark Mode: Question & Answer Glass Bubbles */
+    .message-row {
+      background: rgba(0, 0, 0, 0.45) !important;
+      /* Subtle dark box */
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+      border-radius: 8px !important;
+      margin-bottom: 8px !important;
+      padding: 10px !important;
+    }
+
+    .message-question .msg-content {
+      color: #e0e0e0 !important;
+      text-shadow: none !important;
+    }
+
+    .message-answer .msg-content {
+      color: #e0e0e0 !important; /* Matched to .message-question */
+      text-shadow: none !important;
+    }
+
+    /* Dark Mode: Live Text Area */
+    .transcript-text-area {
+      color: #cccccc !important;
+      text-shadow: none !important;
+      background: rgba(0, 0, 0, 0.2) !important;
+      border-radius: 6px !important;
+      padding: 8px !important;
+    }
+
+    /* =========================================
+       LIGHT MODE (FROSTED GLASS)
+       ========================================= */
+    .light-mode .overlay-container,
+    body.light-mode .overlay-container,
+    [data-theme="light"] .overlay-container {
+      background-color: rgba(245, 245, 245, 0.65) !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Light Mode: Question & Answer Glass Bubbles */
+    .light-mode .message-row,
+    body.light-mode .message-row,
+    [data-theme="light"] .message-row {
+      background: rgba(255, 255, 255, 0.60) !important;
+      /* Bright frosted box */
+      border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .light-mode .message-question .msg-content,
+    body.light-mode .message-question .msg-content,
+    [data-theme="light"] .message-question .msg-content {
+      color: #222222 !important;
+      /* Crisp dark text */
+      text-shadow: none !important;
+    }
+
+    .light-mode .message-answer .msg-content,
+    body.light-mode .message-answer .msg-content,
+    [data-theme="light"] .message-answer .msg-content {
+      color: #222222 !important; /* Matched to light mode question */
+      text-shadow: none !important;
+    }
+
+    /* Light Mode: Live Text Area */
+    .light-mode .transcript-text-area,
+    body.light-mode .transcript-text-area,
+    [data-theme="light"] .transcript-text-area {
+      color: #333333 !important;
+      /* Dark live text */
+      text-shadow: none !important;
+      /* Strips the ugly dark shadow */
+      background: rgba(255, 255, 255, 0.4) !important;
+    }
+  </style>
+  <style>
+    /* FORCE ASSEMBLY AI TEXT TO BE READABLE IN LIGHT MODE */
+    body.light-mode #transcript-container,
+    .light-mode #transcript-container,
+    body.light-mode #transcript,
+    .light-mode #transcript {
+      background-color: transparent !important;
+      padding: 10px !important;
+    }
+
+    /* Force all text elements inside the transcript box to be black */
+    body.light-mode #transcript-container *,
+    .light-mode #transcript-container *,
+    body.light-mode #transcript *,
+    .light-mode #transcript * {
+      color: #222222 !important;
+      text-shadow: none !important;
+    }
+
+    /* Make the Assembly AI Live Text Container a friendly, premium UI bubble in light mode */
+    body.light-theme .auto-transcript-container,
+    body.light-mode .auto-transcript-container,
+    .light-mode .auto-transcript-container,
+    [data-theme="light"] .auto-transcript-container {
+      background-color: transparent !important;
+      /* Removes the huge boxy background */
+      border-bottom: none !important;
+      padding: 12px 16px !important;
+    }
+
+    body.light-theme .transcript-text-area,
+    body.light-mode .transcript-text-area,
+    .light-mode .transcript-text-area,
+    [data-theme="light"] .transcript-text-area {
+      background-color: #ffffff !important;
+      color: #333333 !important;
+      text-shadow: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      border-radius: 12px !important;
+      /* Soft, friendly corners */
+      padding: 10px 14px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+      /* Subtle depth */
+    }
+  </style>
+</body>
+
+</html>

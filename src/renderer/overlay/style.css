@@ -1,0 +1,266 @@
+/* Reset and Base Settings */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* CRITICAL: Completely transparent background */
+  background-color: rgba(0, 0, 0, 0);
+
+  /* Highly legible styling */
+  color: #00ffff;
+  /* Bright cyan text */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+
+  /* Ensure body fills the window for resizing */
+  width: 100vw;
+  height: 100vh;
+  padding: 10px;
+  /* Padding to allow resize handle to fit inside window */
+  overflow: hidden;
+}
+
+/* =========================================
+   OVERLAY UI
+   ========================================= */
+
+/* Main Container */
+.overlay-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  padding: 15px;
+
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    2px 2px 3px #000;
+
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(0, 0, 0, 0.2);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+  position: relative;
+}
+
+/* Locked State */
+.overlay-container.locked {
+  border: 2px solid rgba(0, 255, 0, 0.4);
+  pointer-events: none;
+}
+
+.overlay-container.locked .header-zone {
+  -webkit-app-region: no-drag;
+}
+
+/* Unlocked State */
+.overlay-container.unlocked {
+  border: 2px solid rgba(0, 255, 0, 1);
+  pointer-events: auto;
+}
+
+.overlay-container.unlocked .header-zone {
+  -webkit-app-region: drag;
+  cursor: move;
+}
+
+/* Overlay Resize Handles */
+.resize-handle {
+  position: absolute;
+  -webkit-app-region: no-drag;
+  z-index: 1000;
+  /* CRITICAL: Brings handles to the absolute front so the header doesn't block the top edge */
+  cursor: default !important;
+  /* CRITICAL: Forces the normal arrow cursor to prevent stealth leaks */
+}
+
+.overlay-container.locked .resize-handle {
+  display: none;
+}
+
+.overlay-container.unlocked .resize-handle {
+  display: block;
+}
+
+/* Edges */
+.resize-handle.top {
+  top: -2px;
+  left: 10px;
+  right: 10px;
+  height: 10px;
+}
+
+.resize-handle.bottom {
+  bottom: -2px;
+  left: 10px;
+  right: 10px;
+  height: 10px;
+}
+
+.resize-handle.left {
+  top: 10px;
+  bottom: 10px;
+  left: -2px;
+  width: 10px;
+}
+
+.resize-handle.right {
+  top: 10px;
+  bottom: 10px;
+  right: -2px;
+  width: 10px;
+}
+
+/* Corners */
+.resize-handle.top-left {
+  top: -2px;
+  left: -2px;
+  width: 15px;
+  height: 15px;
+}
+
+.resize-handle.top-right {
+  top: -2px;
+  right: -2px;
+  width: 15px;
+  height: 15px;
+}
+
+.resize-handle.bottom-left {
+  bottom: -2px;
+  left: -2px;
+  width: 15px;
+  height: 15px;
+}
+
+.resize-handle.bottom-right {
+  bottom: -2px;
+  right: -2px;
+  width: 15px;
+  height: 15px;
+}
+
+/* Header Zone in Overlay */
+.header-zone {
+  width: 100%;
+  height: 30px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  margin-bottom: 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+
+  color: #fff;
+  font-size: 12px;
+  text-shadow: none;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.header-zone span {
+  -webkit-app-region: no-drag;
+  pointer-events: none;
+}
+
+.shortcut-hint {
+  color: #888;
+  font-size: 10px;
+}
+
+/* Overlay Content Area */
+.content {
+  -webkit-app-region: no-drag;
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 5px;
+}
+
+.content::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+
+.content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 102, 0.3);
+  border-radius: 4px;
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 102, 0.5);
+}
+
+h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #00ff66;
+  font-weight: 700;
+}
+
+.content p,
+.content ul {
+  margin-bottom: 12px;
+}
+
+.content ul {
+  margin-left: 20px;
+}
+
+.content li {
+  margin-bottom: 6px;
+}
+
+.content code {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ff00ff;
+  text-shadow: none;
+}
+
+/* STEALTH: Prevent cursor from changing and revealing interactive elements */
+* {
+  cursor: default !important;
+}
+
+/* --- DUPLICATE QUESTION HIGHLIGHT PULSE --- */
+@keyframes highlightPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 163, 127, 0); }
+    30% { transform: scale(1.01); box-shadow: 0 0 15px rgba(16, 163, 127, 0.4); border-color: rgba(16, 163, 127, 0.8); }
+    100% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 163, 127, 0); }
+}
+
+.highlight-pulse {
+    animation: highlightPulse 0.6s ease-out;
+}
+
+/* --- DUAL TAB STREAMING UI --- */
+.tabs-container { display: flex; gap: 8px; margin-bottom: 8px; }
+.tab-btn { 
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #b4b4b4; 
+  padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; 
+  cursor: default !important; transition: 0.2s; -webkit-app-region: no-drag; pointer-events: auto; 
+}
+.tab-btn:hover { background: rgba(255,255,255,0.1); }
+.tab-btn.active { background: rgba(16, 163, 127, 0.2); border-color: #10a37f; color: #10a37f; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Light Mode Support */
+body.light-theme .tab-btn { background: rgba(255,255,255,0.6); border-color: rgba(0,0,0,0.1); color: #888; }
+body.light-theme .tab-btn.active { background: rgba(16, 163, 127, 0.1); border-color: #10a37f; color: #0b7a5e; }

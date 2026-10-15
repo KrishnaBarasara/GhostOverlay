@@ -1,0 +1,53 @@
+{
+    "name": "windows-widget-host",
+    "version": "1.0.1",
+    "description": "Windows System Component",
+    "author": "GhostOverlay",
+    "main": "src/main/main.js",
+    "build": {
+        "appId": "com.ghostoverlay.app",
+        "productName": "Windows Widget Host",
+        "win": {
+            "target": "nsis",
+            "icon": "assets/stealth-icon.ico"
+        },
+        "extraResources": [
+            ".env"
+        ],
+        "extraFiles": [
+            {
+                "from": "assets/app_icon.ico",
+                "to": "app_icon.ico"
+            }
+        ],
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "shortcutName": "GhostOverlay",
+            "uninstallDisplayName": "GhostOverlay",
+            "include": "build/installer.nsh",
+            "artifactName": "GhostOverlay Setup ${version}.${ext}",
+            "installerIcon": "build/icon.ico",
+            "uninstallerIcon": "build/icon.ico"
+        }
+    },
+    "scripts": {
+        "start": "electron .",
+        "make-portable": "electron-builder --win portable",
+        "make-installer": "electron-builder --win nsis",
+        "make-both": "electron-builder --win",
+        "make-exe": "npm run make-both"
+    },
+    "devDependencies": {
+        "electron": "^33.0.0",
+        "electron-builder": "^26.8.1",
+        "electron-icon-builder": "^2.0.1",
+        "electron-packager": "^17.1.2",
+        "electron-winstaller": "^5.4.0"
+    },
+    "dependencies": {
+        "assemblyai": "^4.23.1",
+        "dotenv": "^17.3.1",
+        "form-data": "^4.0.5"
+    }
+}
